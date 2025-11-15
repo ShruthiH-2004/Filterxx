@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filterx - 2D Filter Text Extraction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fef9f8, #fef5f3);
+            color: #0d0d0d;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: rgba(13, 13, 13, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(239, 146, 115, 0.3);
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ef9273;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+            text-shadow: 0 0 20px rgba(239, 146, 115, 0.5);
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 3rem;
+        }
+
+        .nav-links a {
+            color: #fef9f8;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            position: relative;
+            padding: 0.5rem 0;
+            cursor: pointer;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #ef9273;
+            transition: width 0.3s;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-links a:hover {
+            color: #ef9273;
+        }
+
+        /* Home Section */
+        .home-section {
+            min-height: 100vh;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 2rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .home-section.active {
+            display: flex;
+        }
+
+        .home-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(239, 146, 115, 0.1) 0%, transparent 70%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(50px, 50px) rotate(180deg); }
+        }
+
+        .home-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 3px solid #ef9273;
+            border-radius: 30px;
+            padding: 5rem 4rem;
+            max-width: 1000px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(239, 146, 115, 0.3);
+            animation: fadeInUp 1s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .home-card h1 {
+            font-size: 3.5rem;
+            color: #0d0d0d;
+            margin-bottom: 2rem;
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        .home-card p {
+            font-size: 1.4rem;
+            color: #333;
+            line-height: 2;
+            margin-bottom: 3rem;
+            animation: fadeIn 2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .cta-button {
+            background: linear-gradient(45deg, #ef9273, #ff7a59);
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 25px rgba(239, 146, 115, 0.4);
+            text-decoration: none;
+            display: inline-block;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(239, 146, 115, 0.6);
+        }
+
+        /* Overview Section */
+        .overview-section {
+            min-height: 100vh;
+            padding: 120px 2rem 4rem;
+            display: none;
+        }
+
+        .overview-section.active {
+            display: block;
+            animation: fadeInPage 0.8s ease-out;
+        }
+
+        @keyframes fadeInPage {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            color: #0d0d0d;
+            margin-bottom: 3rem;
+            text-align: center;
+            position: relative;
+            animation: slideInFromTop 0.8s ease-out;
+        }
+
+        @keyframes slideInFromTop {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 4px;
+            background: linear-gradient(90deg, #ef9273, #ff7a59);
+            border-radius: 2px;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 40px rgba(239, 146, 115, 0.2);
+            transition: all 0.3s;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .content-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 50px rgba(239, 146, 115, 0.3);
+        }
+
+        .content-card h2 {
+            font-size: 2rem;
+            color: #ef9273;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-card p {
+            font-size: 1.1rem;
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .content-card ul {
+            list-style: none;
+            padding-left: 1.5rem;
+        }
+
+        .content-card ul li {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 0.8rem;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .content-card ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #ef9273;
+            font-weight: bold;
+        }
+
+        .flowchart-container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(239, 146, 115, 0.05);
+            border-radius: 15px;
+            margin: 2rem 0;
+        }
+
+        .flowchart-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .sample-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .sample-image-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 25px rgba(239, 146, 115, 0.2);
+            transition: all 0.3s;
+        }
+
+        .sample-image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(239, 146, 115, 0.3);
+        }
+
+        .sample-image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            min-height: 100vh;
+            padding: 120px 2rem 4rem;
+            display: none;
+        }
+
+        .upload-section.active {
+            display: block;
+            animation: fadeInPage 0.8s ease-out;
+        }
+
+        .upload-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .upload-card {
+            background: white;
+            border-radius: 25px;
+            padding: 3rem;
+            box-shadow: 0 15px 50px rgba(239, 146, 115, 0.3);
+        }
+
+        .upload-area {
+            border: 3px dashed #ef9273;
+            border-radius: 20px;
+            padding: 4rem 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: rgba(254, 249, 248, 0.5);
+            cursor: pointer;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #ff7a59;
+            background: rgba(239, 146, 115, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 2rem;
+        }
+
+        .upload-btn {
+            background: linear-gradient(45deg, #ef9273, #ff7a59);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(239, 146, 115, 0.3);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(239, 146, 115, 0.5);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .preview-section {
+            display: none;
+            margin-top: 3rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .preview-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .image-preview {
+            text-align: center;
+        }
+
+        .image-preview h3 {
+            margin-bottom: 1rem;
+            color: #ef9273;
+            font-size: 1.5rem;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 350px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .process-btn {
+            background: linear-gradient(45deg, #0d0d0d, #333);
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(13, 13, 13, 0.3);
+            display: block;
+            margin: 2rem auto;
+        }
+
+        .process-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(13, 13, 13, 0.5);
+        }
+
+        .process-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(239, 146, 115, 0.2);
+            border-left: 4px solid #ef9273;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .extracted-text {
+            background: rgba(254, 249, 248, 0.8);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid #ef9273;
+            margin-top: 2rem;
+        }
+
+        .extracted-text h3 {
+            color: #ef9273;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .text-output {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            min-height: 150px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            color: #0d0d0d;
+            border: 1px solid #ef9273;
+        }
+
+        /* About Section */
+        .about-section {
+            min-height: 100vh;
+            padding: 120px 2rem 4rem;
+            display: none;
+        }
+
+        .about-section.active {
+            display: block;
+            animation: fadeInPage 0.8s ease-out;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .team-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(239, 146, 115, 0.2);
+            transition: all 0.3s;
+        }
+
+        .team-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(239, 146, 115, 0.3);
+        }
+
+        .team-card h3 {
+            color: #ef9273;
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .team-card p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .guide-card {
+            background: linear-gradient(135deg, #ef9273, #ff7a59);
+            color: white;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            margin: 3rem 0;
+            box-shadow: 0 15px 40px rgba(239, 146, 115, 0.3);
+        }
+
+        .guide-card h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Contact Section */
+        .contact-section {
+            min-height: 100vh;
+            padding: 120px 2rem 4rem;
+            display: none;
+        }
+
+        .contact-section.active {
+            display: block;
+            animation: fadeInPage 0.8s ease-out;
+        }
+
+        .contact-card {
+            background: white;
+            border-radius: 25px;
+            padding: 4rem;
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+            box-shadow: 0 15px 50px rgba(239, 146, 115, 0.3);
+        }
+
+        .contact-info {
+            font-size: 1.3rem;
+            color: #333;
+            margin: 2rem 0;
+        }
+
+        .email-link {
+            color: #ef9273;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .email-link:hover {
+            color: #ff7a59;
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .footer {
+            background: #0d0d0d;
+            color: #fef9f8;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer p {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .footer a {
+            color: #ef9273;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer a:hover {
+            color: #ff7a59;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-links {
+                flex-direction: column;
+                gap: 1rem;
+                display: none;
+            }
+
+            .home-card {
+                padding: 3rem 2rem;
+            }
+
+            .home-card h1 {
+                font-size: 2.5rem;
+            }
+
+            .home-card p {
+                font-size: 1.1rem;
+            }
+
+            .preview-container {
+                grid-template-columns: 1fr;
+            }
+
+            .team-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">Filterx</div>
+            <ul class="nav-links">
+                <li><a onclick="showSection('home'); return false;">Home</a></li>
+                <li><a onclick="showSection('overview'); return false;">Overview</a></li>
+                <li><a onclick="showSection('upload'); return false;">Upload</a></li>
+                <li><a onclick="showSection('about'); return false;">About</a></li>
+                <li><a onclick="showSection('contact'); return false;">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Home Section -->
+    <section id="home" class="home-section active">
+        <div class="home-card">
+            <h1>2D Filter Text Extraction</h1>
+            <p>Extract English and Persian text from images with graphically embossed backgrounds using advanced 2D filtering techniques and deep learning.</p>
+            <a onclick="showSection('upload'); return false;" class="cta-button">Upload Image Now</a>
+        </div>
+    </section>
+
+    <!-- Overview Section -->
+    <section id="overview" class="overview-section">
+        <div class="section-container">
+            <h1 class="section-title">Overview</h1>
+
+            <!-- Introduction -->
+            <div class="content-card">
+                <h2>Introduction to Text Extraction from Natural Images</h2>
+                <p>In today's rapidly evolving digital landscape, extracting textual content from images is a foundational task with wide-ranging implications across numerous industries. From document digitization and smart surveillance to language translation and assistive technologies, the ability to automatically detect and interpret text embedded in images has transformed how humans interact with the world.</p>
+                <p>Unlike standard printed documents, real-world images often include text superimposed on varied, cluttered, and textured backgrounds. These images might contain uneven lighting, occlusions, distortions, or overlapping graphic elements that interfere with clear character visibility. A particularly challenging scenario involves graphical embossing backgrounds, where the text appears engraved, raised, or blended into the background.</p>
+            </div>
+
+            <!-- Persian Language Importance -->
+            <div class="content-card">
+                <h2>Importance of Persian Language</h2>
+                <p>Persian is an Indo-European language, related to English and other European languages, with a simpler grammar that lacks gender and has fewer cases than Arabic. Persian is the official language of Iran, while its varieties Dari and Tajiki are official in Afghanistan and Tajikistan, respectively. The modern language is written in a modified Arabic script. Persian has a long history and has significantly influenced other languages and cultures, from the Mughal Empire to modern English, which has borrowed words like "caravan" and "paradise".</p>
+            </div>
+
+            <!-- How Text Extraction Happens -->
+            <div class="content-card">
+                <h2>How Text Extraction Happens</h2>
+                <ul>
+                    <li>Insert the image as input</li>
+                    <li>Application of 2D filters to reduce noise</li>
+                    <li>Identify whether image is simple or complex</li>
+                    <li>Use either:
+                        <ul style="margin-top: 0.5rem;">
+                            <li>OCR for simple images</li>
+                            <li>Deep learning model for complex images</li>
+                        </ul>
+                    </li>
+                    <li>Output the extracted text</li>
+                </ul>
+            </div>
+
+            <!-- Flow Chart -->
+            <div class="content-card">
+                <h2>Process Flow</h2>
+                <div class="flowchart-container">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 800'%3E%3Crect x='200' y='20' width='200' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='300' y='50' text-anchor='middle' font-size='18' font-weight='bold'%3EInput%3C/text%3E%3Cpath d='M 300 70 L 300 100' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Crect x='200' y='100' width='200' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='300' y='130' text-anchor='middle' font-size='18' font-weight='bold'%3EPre Processing%3C/text%3E%3Cpath d='M 300 150 L 300 180' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Crect x='200' y='180' width='200' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='300' y='210' text-anchor='middle' font-size='18' font-weight='bold'%3E2D Filter%3C/text%3E%3Cpath d='M 300 230 L 300 260' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Crect x='200' y='260' width='200' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='300' y='290' text-anchor='middle' font-size='16' font-weight='bold'%3EProperty Assessment%3C/text%3E%3Cpath d='M 300 310 L 300 340' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Crect x='200' y='340' width='200' height='60' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='300' y='365' text-anchor='middle' font-size='16' font-weight='bold'%3EText Extraction%3C/text%3E%3Ctext x='300' y='385' text-anchor='middle' font-size='16' font-weight='bold'%3EMethods%3C/text%3E%3Cpath d='M 200 370 L 100 420' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Cpath d='M 400 370 L 500 420' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Crect x='30' y='420' width='140' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='100' y='450' text-anchor='middle' font-size='16' font-weight='bold'%3EDeep Learning%3C/text%3E%3Crect x='430' y='420' width='140' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='500' y='445' text-anchor='middle' font-size='16' font-weight='bold'%3EPre Processing%3C/text%3E%3Cpath d='M 100 470 L 250 540' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Cpath d='M 500 470 L 500 510' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Crect x='430' y='510' width='140' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='500' y='540' text-anchor='middle' font-size='16' font-weight='bold'%3EOCR%3C/text%3E%3Cpath d='M 500 560 L 350 540' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Crect x='220' y='540' width='160' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='300' y='570' text-anchor='middle' font-size='16' font-weight='bold'%3EExtracted Text%3C/text%3E%3Cpath d='M 300 590 L 300 620' stroke='black' stroke-width='2' marker-end='url(%23arrow)'/%3E%3Crect x='220' y='620' width='160' height='50' fill='white' stroke='black' stroke-width='2'/%3E%3Ctext x='300' y='650' text-anchor='middle' font-size='16' font-weight='bold'%3EResult Analysis%3C/text%3E%3Cdefs%3E%3Cmarker id='arrow' markerWidth='10' markerHeight='10' refX='9' refY='3' orient='auto' markerUnits='strokeWidth'%3E%3Cpath d='M0,0 L0,6 L9,3 z' fill='black' /%3E%3C/marker%3E%3C/defs%3E%3C/svg%3E" alt="Process Flow Chart">
+                </div>
+            </div>
+
+            <!-- Sample Output Images -->
+            <div class="content-card">
+                <h2>Sample Output Images</h2>
+                <div class="sample-images">
+                    <div class="sample-image-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f5f5f5'/%3E%3Ctext x='200' y='150' text-anchor='middle' font-size='24' fill='%23333'%3EOriginal Image%3C/text%3E%3C/svg%3E" alt="Original Image">
+                        <p style="margin-top: 1rem; text-align: center; color: #666;">Input Image with Embossed Background</p>
+                    </div>
+                    <div class="sample-image-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e8e8e8'/%3E%3Ctext x='200' y='150' text-anchor='middle' font-size='24' fill='%23333'%3EFiltered Image%3C/text%3E%3C/svg%3E" alt="Filtered Image">
+                        <p style="margin-top: 1rem; text-align: center; color: #666;">After 2D Filter Processing</p>
+                    </div>
+                    <div class="sample-image-card">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23fff'/%3E%3Crect x='50' y='100' width='300' height='100' fill='none' stroke='%23ef9273' stroke-width='3'/%3E%3Ctext x='200' y='155' text-anchor='middle' font-size='20' fill='%23333'%3EExtracted Text Output%3C/text%3E%3C/svg%3E" alt="Extracted Text">
+                        <p style="margin-top: 1rem; text-align: center; color: #666;">Final Extracted Text Result</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section id="upload" class="upload-section">
+        <div class="section-container">
+            <h1 class="section-title">Upload Your Image</h1>
+            
+            <div class="upload-container">
+                <div class="upload-card">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">
+                            Drag and drop your image here or click to browse
+                            <br><small>Supported formats: JPG, PNG, JPEG (Max: 10MB)</small>
+                        </div>
+                        <input type="file" id="fileInput" class="file-input" accept="image/*">
+                        <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                            Choose Image
+                        </button>
+                    </div>
+
+                    <div class="preview-section" id="previewSection">
+                        <div class="preview-container">
+                            <div class="image-preview">
+                                <h3>Original Image</h3>
+                                <img id="originalImage" src="" alt="Original">
+                            </div>
+                            <div class="image-preview">
+                                <h3>Processed Image</h3>
+                                <img id="processedImage" src="" alt="Processed">
+                            </div>
+                        </div>
+
+                        <button class="process-btn" id="processBtn">Apply 2D Filter & Extract Text</button>
+
+                        <div class="loading" id="loading">
+                            <div class="spinner"></div>
+                            <p>Processing image with 2D filters...</p>
+                        </div>
+
+                        <div class="extracted-text">
+                            <h3>Extracted Text</h3>
+                            <div class="text-output" id="textOutput">
+                                No text extracted yet. Please upload an image and click process.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="section-container">
+            <h1 class="section-title">About Us</h1>
+
+            <div class="content-card">
+                <p style="font-size: 1.2rem; text-align: center; line-height: 1.8;">
+                    The Implementation of 2D Filter and Extraction of English and Persian Text from Graphically Embossed Backgrounds is executed as a part of the Major Project of final year.
+                </p>
+            </div>
+
+            <div class="guide-card">
+                <h3>Special Thanks to Our Guide</h3>
+                <h2 style="margin: 1rem 0;">Dr. Pavan Kumar M P</h2>
+                <p style="font-size: 1.1rem;">For his constant support and mentorship</p>
+            </div>
+
+            <div class="content-card">
+                <h2 style="text-align: center; margin-bottom: 2rem;">Our Team</h2>
+                <div class="team-grid">
+                    <div class="team-card">
+                        <h3>Bhoomika D</h3>
+                        <p>Team Member</p>
+                    </div>
+                    <div class="team-card">
+                        <h3>Shruthi Hiremath</h3>
+                        <p>Team Member</p>
+                    </div>
+                    <div class="team-card">
+                        <h3>Spoorthi B</h3>
+                        <p>Team Member</p>
+                    </div>
+                    <div class="team-card">
+                        <h3>Saanvi Patil</h3>
+                        <p>Team Member</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card" style="text-align: center;">
+                <h3 style="color: #ef9273; font-size: 1.5rem; margin-bottom: 1rem;">Department of Information Science and Engineering</h3>
+                <p style="font-size: 1.2rem; color: #333;">JNNCE, Shivamogga</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="section-container">
+            <h1 class="section-title">Contact Us</h1>
+            
+            <div class="contact-card">
+                <h2 style="color: #ef9273; margin-bottom: 2rem;">Get In Touch</h2>
+                <div class="contact-info">
+                    <p style="margin-bottom: 1rem;">For any queries, please reach out to us:</p>
+                    <p style="font-size: 1.5rem;">
+                        <a href="mailto:info@filterx.com" class="email-link">info@filterx.com</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Copyright © All rights reserved | Made by <a href="http://filterx.info">filterx.info</a></p>
+    </footer>
+
+    <script>
+        // Global variables
+        let uploadedFile = null;
+        let currentSection = 'home';
+
+        // Show/Hide sections
+        function showSection(sectionName) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.home-section, .overview-section, .upload-section, .about-section, .contact-section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+                section.classList.remove('active');
+            });
+
+            // Show selected section
+            const targetSection = document.getElementById(sectionName);
+            if (targetSection) {
+                targetSection.style.display = 'block';
+                setTimeout(() => {
+                    targetSection.classList.add('active');
+                }, 10);
+                currentSection = sectionName;
+                
+                // Smooth scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const previewSection = document.getElementById('previewSection');
+        const originalImage = document.getElementById('originalImage');
+        const processedImage = document.getElementById('processedImage');
+        const processBtn = document.getElementById('processBtn');
+        const textOutput = document.getElementById('textOutput');
+        const loading = document.getElementById('loading');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        function handleFileUpload(file) {
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 10MB');
+                return;
+            }
+
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload a valid image file');
+                return;
+            }
+
+            // Store file reference
+            uploadedFile = file;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalImage.src = e.target.result;
+                processedImage.src = e.target.result;
+                previewSection.style.display = 'block';
+                textOutput.textContent = 'Image uploaded successfully. Click "Apply 2D Filter & Extract Text" to process.';
+                processBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Process button functionality
+        processBtn.addEventListener('click', async () => {
+            if (!uploadedFile) {
+                alert('Please upload an image first');
+                return;
+            }
+
+            processBtn.disabled = true;
+            loading.style.display = 'block';
+            textOutput.textContent = 'Processing with 2D filters and OCR...';
+
+            try {
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('image', uploadedFile);
+                formData.append('filterType', 'combo');
+
+                // Send to backend for processing
+                const response = await fetch('/api/process-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update processed image
+                    processedImage.src = result.processedImage;
+                    
+                    // Update extracted text
+                    textOutput.textContent = result.extractedText || 'No text detected in the image.';
+                } else {
+                    throw new Error(result.error || 'Processing failed');
+                }
+
+            } catch (error) {
+                textOutput.textContent = `Error: ${error.message}\n\nPlease try again or check if the image contains readable text.`;
+            } finally {
+                loading.style.display = 'none';
+                processBtn.disabled = false;
+            }
+        });
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+            });
+        });
+
+        // Add scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all content cards
+        document.querySelectorAll('.content-card, .team-card, .sample-image-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.6s ease-out';
+            observer.observe(card);
+        });
+
+        // Initialize - show home section
+        window.addEventListener('load', () => {
+            showSection('home');
+        });
+    </script>
+</body>
+</html>
